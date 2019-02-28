@@ -12,7 +12,7 @@ int main()
 
 	SchemeInterpreter scheme;
 
-	const char *myscheme{ "(+ 123.45 (+ 333 999))" };
+	const char *myscheme{ "(mult 111 (add 123.45 99) )" };
 	scheme.parse( myscheme );
 
 	system( "PAUSE" );

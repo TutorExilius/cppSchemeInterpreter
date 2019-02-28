@@ -103,8 +103,13 @@ void SchemeInterpreter::parse( const char scheme[] )
 
 void SchemeInterpreter::buildNode( Node *root, const char scheme[], int &index )
 {
-	Node *nextRoot = root;
-	Child child = Child::LEFT;
+	if( root->left == nullptr )
+	{
+		root->left = new Node;
+	}
+
+	Node *nextRoot = root->left;
+	Child nextChildRoot_trigger = Child::LEFT;
 
 	char ch;
 
@@ -120,47 +125,48 @@ void SchemeInterpreter::buildNode( Node *root, const char scheme[], int &index )
 			std::tie( index, operation ) = this->extractOperationString( scheme, index );
 			root->operation = operation;
 		}
+		else if( ch == ')' )
+		{
+			return;
+		}
 		else if( ::isdigit( ch ) )
 		{
 			double number = 0.0;
 			std::tie( index, number ) = this->extractNumber( scheme, index );
 
-			if( child == Child::LEFT )
+			if( nextChildRoot_trigger == Child::LEFT )
 			{
-			
-				child = Child::RIGHT;
+				nextChildRoot_trigger = Child::RIGHT;
 
-				nextRoot = root->left;
-				nextRoot = new Node;
+				root->left->result = number;
 
-				nextRoot->result = number;
+				if( root->right == nullptr )
+				{
+					root->right = new Node;
+				}
+
+				nextRoot = root->right;
 			}
 			else
 			{
-				if( nextRoot->right == nullptr )
-				{
-					nextRoot->right = new Node;
-				}
-
-				nextRoot = nextRoot->right;
-				nextRoot = new Node;
-
-				nextRoot->result = number;
+				root->right->result = number;
 			}
 		}
 		else if( ch == '(' )
 		{
-			if( nextRoot->left == nullptr )
-			{
-				nextRoot->left = new Node;
-			}
-
-			if( nextRoot->right == nullptr )
-			{
-				nextRoot->right = new Node;
-			}
-
 			this->buildNode( nextRoot, scheme, ++index );
+
+			if( nextChildRoot_trigger == Child::LEFT )
+			{
+				nextChildRoot_trigger = Child::RIGHT;
+
+				if( root->right == nullptr )
+				{
+					root->right = new Node;
+				}
+
+				nextRoot = root->right;
+			}
 		}
 			
 		++index;
