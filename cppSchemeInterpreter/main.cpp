@@ -12,8 +12,11 @@ int main()
 
 	SchemeInterpreter scheme;
 
-	const char *myscheme{ "(mult 111 (add 123.45 99) )" };
+	const char *myscheme{ "(pow (* 3 1) (+ 1 1))" };
 	scheme.parse( myscheme );
+	scheme.calculate();
+
+	std::cout << "Result:" << scheme.getResult() << std::endl;
 
 	system( "PAUSE" );
 	return 0;

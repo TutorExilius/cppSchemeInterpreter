@@ -5,30 +5,66 @@
 
 #include <stack>
 #include <sstream>
+#include <cmath>
 
 SchemeInterpreter::SchemeInterpreter()
-: root{ nullptr } // create empty root
+	: root{ nullptr } // create empty root
 {
+	this->binOperations.insert( 
+		std::make_pair("add", [](const double &a, const double &b) { return a + b; })
+	);
+
+	this->binOperations.insert(
+		std::make_pair("sub", [](const double &a, const double &b) { return a - b; })
+	);
+
+	this->binOperations.insert(
+		std::make_pair("mult", [](const double &a, const double &b) { return a * b; })
+	);
+
+	this->binOperations.insert(
+		std::make_pair("diff", [](const double &a, const double &b) { return a / b; })
+	);
+
+	this->binOperations.insert(
+		std::make_pair("+", [](const double &a, const double &b) { return a + b; })
+	);
+
+	this->binOperations.insert(
+		std::make_pair("-", [](const double &a, const double &b) { return a - b; })
+	);
+
+	this->binOperations.insert(
+		std::make_pair("*", [](const double &a, const double &b) { return a * b; })
+	);
+
+	this->binOperations.insert(
+		std::make_pair("/", [](const double &a, const double &b) { return a / b; })
+	);
+
+	this->binOperations.insert(
+		std::make_pair("pow", [](const double &a, const double &b) { return std::pow(a,b); })
+	);
 }
 
-bool SchemeInterpreter::isValid( const std::string & scheme )
+bool SchemeInterpreter::isValid(const std::string & scheme)
 {
-	if( scheme.size() > 0 && scheme.find( '(' ) == std::string::npos )
+	if (scheme.size() > 0 && scheme.find('(') == std::string::npos)
 	{
 		return false;
 	}
 
 	std::stack<int> myStack;
 
-	for( const auto &ch : scheme )
+	for (const auto &ch : scheme)
 	{
-		if( ch == '(' )
+		if (ch == '(')
 		{
-			myStack.push( 1 );
+			myStack.push(1);
 		}
-		else if( ch == ')' )
+		else if (ch == ')')
 		{
-			if( myStack.empty() )
+			if (myStack.empty())
 				return false;
 
 			myStack.pop();
@@ -38,111 +74,106 @@ bool SchemeInterpreter::isValid( const std::string & scheme )
 	return myStack.empty();
 }
 
-void SchemeInterpreter::parse( const char scheme[] )
+void SchemeInterpreter::calculate( std::shared_ptr<Node> node )
 {
-	if( !this->isValid( std::string{ scheme } ) )
+	if (node == nullptr)
+		return;
+
+	this->calculate(node->left);
+	this->calculate(node->right);
+
+	double leftResult = (node->left != nullptr)
+		? node->left->result
+		: 0.0;
+
+	double rightResult = (node->right != nullptr)
+		? node->right->result
+		: 0.0;
+
+	if (this->binOperations.find(node->operation) != this->binOperations.end())
 	{
-		spdlog::error( "Invalid scheme: {}", scheme );
+		BinOperation binOperate = this->binOperations[node->operation];
+		node->result = binOperate( leftResult, rightResult );
+	}
+
+	node->left = nullptr;
+	node->right = nullptr;
+}
+
+void SchemeInterpreter::parse(const char scheme[])
+{
+	if (!this->isValid(std::string{ scheme }))
+	{
+		spdlog::error("Invalid scheme: {}", scheme);
 		return;
 	}
 
-	if( scheme[0] == '(' )
+	if (scheme[0] == '(')
 	{
 		int currentParsePos = 1;
 
-		this->root = new Node;
-		this->buildNode( this->root, scheme, currentParsePos );
+		this->root = std::make_shared<Node>();
+		this->buildNode(this->root, scheme, currentParsePos);
 	}
 	else
 	{
 		return;
 	}
-	//size_t index = 0;
-	//this->buildTree( scheme, index, this->root, this->root );
-
-	/*
-	bool left = true;
-
-	Node *currentRoot = this->root;
-
-	for( size_t i{ 0 }; i<scheme.size(); ++i )
-	{
-		const char &ch{ scheme[i] };
-
-		if( ::isdigit( ch ) )
-		{
-			double number = 0.0;
-			std::tie(i,number) = this->extractNumber( scheme.c_str(), i );
-
-			if( left )
-			{
-				left = false;
-
-				this->root->left = new Node{ nullptr, nullptr, number, "" };
-			}
-			else
-			{
-				this->root->right = new Node{ nullptr, nullptr, number, "" };
-			}
-		}
-		else if( ch == '(' || ch == ')' )
-		{
-
-		}
-		else if( not::isspace( ch ) )
-		{
-			std::string operation;
-
-			std::tie( i, operation ) = this->extractOperationString( scheme.c_str(), i );
-
-			this->root->operation = operation;
-		}
-	}
-	*/
 }
 
-void SchemeInterpreter::buildNode( Node *root, const char scheme[], int &index )
+void SchemeInterpreter::calculate()
 {
-	if( root->left == nullptr )
+	if (this->root == nullptr)
 	{
-		root->left = new Node;
+		spdlog::info("root-nodes is nullptr");
+		return;
 	}
 
-	Node *nextRoot = root->left;
+	this->calculate(this->root);
+}
+
+void SchemeInterpreter::buildNode(std::shared_ptr<Node> root, const char scheme[], int &index)
+{
+	if (root->left == nullptr)
+	{
+		root->left = std::make_shared<Node>();
+	}
+
+	std::shared_ptr<Node> nextRoot = root->left;
 	Child nextChildRoot_trigger = Child::LEFT;
 
 	char ch;
 
 	const std::string tmp{ scheme };
 
-	while( index < tmp.size() )
+	while (index < tmp.size())
 	{
 		ch = scheme[index];
 
-		if( not::isdigit( ch ) && not::isspace( ch ) && ch != '(' && ch != ')' )
+		if (not::isdigit(ch) && not::isspace(ch) && ch != '(' && ch != ')')
 		{
 			std::string operation;
-			std::tie( index, operation ) = this->extractOperationString( scheme, index );
+			std::tie(index, operation) = this->extractOperationString(scheme, index);
 			root->operation = operation;
 		}
-		else if( ch == ')' )
+		else if (ch == ')')
 		{
 			return;
 		}
-		else if( ::isdigit( ch ) )
+		else if (::isdigit(ch))
 		{
 			double number = 0.0;
-			std::tie( index, number ) = this->extractNumber( scheme, index );
+			std::tie(index, number) = this->extractNumber(scheme, index);
 
-			if( nextChildRoot_trigger == Child::LEFT )
+			if (nextChildRoot_trigger == Child::LEFT)
 			{
 				nextChildRoot_trigger = Child::RIGHT;
 
 				root->left->result = number;
 
-				if( root->right == nullptr )
+				if (root->right == nullptr)
 				{
-					root->right = new Node;
+					root->right = std::make_shared<Node>();
 				}
 
 				nextRoot = root->right;
@@ -152,89 +183,29 @@ void SchemeInterpreter::buildNode( Node *root, const char scheme[], int &index )
 				root->right->result = number;
 			}
 		}
-		else if( ch == '(' )
+		else if (ch == '(')
 		{
-			this->buildNode( nextRoot, scheme, ++index );
+			this->buildNode(nextRoot, scheme, ++index);
 
-			if( nextChildRoot_trigger == Child::LEFT )
+			if (nextChildRoot_trigger == Child::LEFT)
 			{
 				nextChildRoot_trigger = Child::RIGHT;
 
-				if( root->right == nullptr )
+				if (root->right == nullptr)
 				{
-					root->right = new Node;
+					root->right = std::make_shared<Node>();
 				}
 
 				nextRoot = root->right;
 			}
 		}
-			
+
 		++index;
-	}	
-}
-
-/*
-void SchemeInterpreter::buildTree( std::string &scheme,
-								   size_t &index, 
-								   Node *currentRoot,
-								   Node *root )
-{
-	bool left = true;
-
-	const size_t strSize{ scheme.size() };
-
-	double rootResult = 0.0;
-
-	for( ; index < strSize; ++index )
-	{
-		const char &ch{ scheme[index] };
-
-		if( ::isdigit( ch ) )
-		{
-			double number = 0.0;
-			std::tie( index, number ) = this->extractNumber( scheme.c_str(), index );
-
-			if( left )
-			{
-				left = false;
-			}
-
-			rootResult = number;
-		}
-		else if( ch == '(' )
-		{
-			currentRoot->left = new Node{ nullptr, nullptr, 0.0, "" };
-			currentRoot->right = new Node{ nullptr, nullptr, 0.0, "" };
-
-			Node *whichChild = nullptr;
-			
-			if( left )
-			{
-				currentRoot->left->result = rootResult;
-				whichChild = currentRoot->left;
-			}
-			else
-			{
-				currentRoot->right->result = rootResult;
-				whichChild = currentRoot->right;
-			}
-
-			this->buildTree( scheme, ++index, whichChild, currentRoot );
-		}
-		else if( not::isspace( ch ) )
-		{
-			std::string operation;
-
-			std::tie( index, operation ) = this->extractOperationString( scheme.c_str(), index );
-
-			root->operation = operation;
-		}
 	}
 }
-*/
 
-std::pair<int, std::string> SchemeInterpreter::extractOperationString( const char str[], 
-																	   int &startOffset )
+std::pair<int, std::string> SchemeInterpreter::extractOperationString(const char str[],
+	int &startOffset)
 {
 	std::stringstream operationStream;
 
@@ -243,9 +214,9 @@ std::pair<int, std::string> SchemeInterpreter::extractOperationString( const cha
 	char ch = '\0';
 	int i{ startOffset };
 
-	while( ( ch = str[i] ) != '\0' )
+	while ((ch = str[i]) != '\0')
 	{
-		if( !::isspace( ch ) )
+		if (!::isspace(ch))
 		{
 			lastNonSpaceCharPos = i;
 			operationStream << ch;
@@ -258,11 +229,11 @@ std::pair<int, std::string> SchemeInterpreter::extractOperationString( const cha
 		++i;
 	}
 
-	return std::make_pair( lastNonSpaceCharPos, operationStream.str() );
+	return std::make_pair(lastNonSpaceCharPos, operationStream.str());
 }
 
-std::pair<int, double> SchemeInterpreter::extractNumber( const char str[], 
-														 int &startOffset )
+std::pair<int, double> SchemeInterpreter::extractNumber(const char str[],
+	int &startOffset)
 {
 	std::stringstream numberStream;
 
@@ -271,9 +242,9 @@ std::pair<int, double> SchemeInterpreter::extractNumber( const char str[],
 	char ch = '\0';
 	int i{ startOffset };
 
-	while( ( ch = str[i] ) != '\0' )
+	while ((ch = str[i]) != '\0')
 	{
-		if( ::isdigit( ch ) || ch == '.' )
+		if (::isdigit(ch) || ch == '.')
 		{
 			lastDigitPos = i;
 			numberStream << ch;
@@ -289,30 +260,10 @@ std::pair<int, double> SchemeInterpreter::extractNumber( const char str[],
 	double number = 0.0;
 	numberStream >> number;
 
-	return std::make_pair( lastDigitPos, number );
+	return std::make_pair(lastDigitPos, number);
 }
 
 double SchemeInterpreter::getResult() const
 {
 	return this->root->result;
-}
-
-double SchemeInterpreter::add( double a, double b )
-{
-	return a + b;
-}
-
-double SchemeInterpreter::sub( double a, double b )
-{
-	return a - b;
-}
-
-double SchemeInterpreter::mult( double a, double b )
-{
-	return a * b;
-}
-
-double SchemeInterpreter::div( double a, double b )
-{
-	return a / b;
 }
