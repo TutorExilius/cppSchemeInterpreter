@@ -36,7 +36,7 @@ struct Node
 			return this->left->result * this->right->result;
 		}
 		else // default		
-		{			
+		{
 			return 0.0;
 		}
 	}

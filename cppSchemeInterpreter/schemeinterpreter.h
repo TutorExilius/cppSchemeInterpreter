@@ -16,7 +16,7 @@ enum class Child
 class SchemeInterpreter final
 {
 public:
-	using BinOperation = std::function<double(double, double)>;
+	using BinOperation = std::function<double( double, double )>;
 
 	SchemeInterpreter();
 	SchemeInterpreter( const SchemeInterpreter &obj ) = default;
@@ -31,7 +31,7 @@ public:
 	void calculate();
 
 	//void buildTree( std::string &scheme, size_t &index, Node *currentRoot, Node *root );
-	void buildNode(std::shared_ptr<Node> root, const char scheme[], int &index );
+	void buildNode( std::shared_ptr<Node> root, const char scheme[], int &index );
 
 	double getResult() const;
 
@@ -41,7 +41,7 @@ private:
 	std::pair<int, double> extractNumber( const char str[], int &startOffset );
 	std::pair<int, std::string> extractOperationString( const char str[], int &startOffset );
 
-	std::unordered_map<std::string,BinOperation> binOperations;
+	std::unordered_map<std::string, BinOperation> binOperations;
 	std::shared_ptr<Node> root;
 };
 
